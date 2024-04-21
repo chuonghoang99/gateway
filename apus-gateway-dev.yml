@@ -1,0 +1,30 @@
+version: "3.6"
+
+services:
+  gateway:
+    image: %DOCKER_IMAGE%
+    stop_grace_period: 30s
+    networks:
+      - traefik_traefik_public
+    environment:
+      - "DEBUG=true"
+      - "PROFILE=dev"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+      labels:
+        - traefik.docker.network=traefik_traefik_public
+        - traefik.frontend.rule=Host:gateway.dev.apusplatform.com
+        - traefik.port=8080
+        - traefik.backend=gateway
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/management/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+networks:
+  traefik_traefik_public:
+    external: true

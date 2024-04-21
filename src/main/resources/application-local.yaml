@@ -1,0 +1,25 @@
+server:
+  port: 8088
+
+spring:
+  zipkin:
+    enabled: false
+    baseUrl: http://zipkin.dev.afstech.vn:9411
+
+logging:
+  level:
+    ROOT: INFO
+    com.apus.base: INFO
+    com.apus.gateway: INFO
+    com.netflix.config.sources.URLConfigurationSource: ERROR
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+springdoc:
+  swagger-ui:
+    configUrl: "/swagger-ui/swagger-config.json"
+    ssl: false

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <conversionRule conversionWord="customHighlight"
+                    converterClass="com.apus.gateway.configuration.LoggingHighlight"/>
+    <springProperty scope="context" name="SERVICE_NAME" source="spring.application.name"/>
+    <property name="LOG_DIR" value="log/${SERVICE_NAME}"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %cyan(| %d{dd-MM-yyyy HH:mm:ss.SSS} |) [%X{traceId:-},%X{spanId:-}] %magenta([%thread]) %customHighlight([%-5level]) %cyan(%logger{25}): %msg%n%throwable
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!--    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+    <!--        <file>${LOG_DIR}/${SERVICE_NAME}.log</file>-->
+    <!--        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">-->
+    <!--            &lt;!&ndash; rollover daily &ndash;&gt;-->
+    <!--            <fileNamePattern>${LOG_DIR}/${SERVICE_NAME}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>-->
+    <!--            &lt;!&ndash; each file should be maximum at 100MB, keep 60 days worth of history, but at most 60GB &ndash;&gt;-->
+    <!--            <maxFileSize>100MB</maxFileSize>-->
+    <!--            <maxHistory>60</maxHistory>-->
+    <!--            <totalSizeCap>60GB</totalSizeCap>-->
+    <!--        </rollingPolicy>-->
+    <!--        <encoder>-->
+    <!--            <charset>UTF-8</charset>-->
+    <!--            <pattern>-->
+    <!--                | %d{dd-MM-yyyy HH:mm:ss.SSS} | [%X{traceId:-},%X{spanId:-}] [%thread] [%-5level] %logger{25}: %msg%n%throwable-->
+    <!--            </pattern>-->
+    <!--        </encoder>-->
+    <!--    </appender>-->
+
+    <appender name="LOGSTASH_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <pattern>
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "service": "${springAppName:-}",
+                        "traceId": "%X{traceId:-}",
+                        "spanId": "%X{spanId:-}",
+                        "baggage": "%X{key:-}",
+                        "pid": "${PID:-}",
+                        "thread": "%thread",
+                        "logger": "%logger{40}",
+                        "message": "%message"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <appender name="async_STDOUT" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="STDOUT"/>
+    </appender>
+    <!--    <appender name="async_FILE" class="ch.qos.logback.classic.AsyncAppender">-->
+    <!--        <appender-ref ref="FILE"/>-->
+    <!--    </appender>-->
+    <appender name="async_LOGSTASH_STDOUT" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="LOGSTASH_STDOUT"/>
+    </appender>
+
+    <!--Production Profile-->
+    <springProfile name="prod">
+        <logger name="org.hibernate.SQL" level="ERROR" additivity="false">
+            <appender-ref ref="async_LOGSTASH_STDOUT"/>
+        </logger>
+
+        <root level="INFO" additivity="false">
+            <appender-ref ref="async_LOGSTASH_STDOUT"/>
+        </root>
+    </springProfile>
+
+    <!--Local,Dev Profile-->
+    <springProfile name="!prod">
+        <logger name="org.hibernate.SQL" level="ERROR" additivity="false">
+            <appender-ref ref="async_STDOUT"/>
+        </logger>
+
+        <root level="INFO" additivity="false">
+            <appender-ref ref="async_STDOUT"/>
+        </root>
+    </springProfile>
+
+</configuration>

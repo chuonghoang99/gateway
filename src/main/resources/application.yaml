@@ -1,0 +1,133 @@
+server:
+  port: 8080
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 999
+      min-spare: 20
+    max-connections: 888
+    accept-count: 200
+    max-http-form-post-size: 100MB
+
+logging:
+  level:
+    ROOT: INFO
+    com.apus.base: INFO
+    com.apus.gateway: INFO
+    com.netflix.config.sources.URLConfigurationSource: ERROR
+
+spring:
+  application:
+    name: gateway
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+  # Log tracing
+  zipkin:
+    enabled: false
+    baseUrl: http://zipkin.dev.afstech.vn:9411
+  sleuth:
+    enabled: true
+
+eureka:
+  client:
+    enabled: true
+    healthcheck:
+      enabled: true
+    fetch-registry: true
+    register-with-eureka: true
+    instance-info-replication-interval-seconds: 30
+    registry-fetch-interval-seconds: 30
+    service-url:
+      defaultZone: http://service-registry:8761/eureka/
+  instance:
+    appname: gateway
+    instanceId: gateway:${spring.application.instance-id:${random.value}}
+    prefer-ip-address: true
+    virtual-host-name: gateway
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    status-page-url-path: ${management.endpoints.web.base-path}/info
+    health-check-url-path: ${management.endpoints.web.base-path}/health
+    metadata-map:
+      zone: primary
+
+management:
+  endpoints:
+    web:
+      base-path: /management
+      exposure:
+        include: ['health', 'info']
+
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 60000
+ribbon:
+  ReadTimeout: 20000
+  ConnectTimeout: 10000
+  eureka:
+    enabled: true
+
+
+# See http://cloud.spring.io/spring-cloud-netflix/spring-cloud-netflix.html
+zuul:
+  sensitive-headers: Cookie,Set-Cookie
+  host:
+    max-total-connections: 1000
+    max-per-route-connections: 100
+  prefix: /services
+  semaphore:
+    max-semaphores: 500
+  ignoredServices: 'gateway'
+  ignored-headers: Access-Control-Allow-Credentials, Access-Control-Allow-Origin, Access-Control-Allow-Methods
+  SendErrorFilter.error.disable: true
+
+gateway:
+  rate-limiting:
+    enabled: false
+    limit: 100000
+    duration-in-seconds: 60
+  uaa:
+    access-token-uri: http://uaa/oauth/token
+    accepted-roles-uri: http://uaa/oauth/accepted-roles
+    accepted-scopes-uri: http://uaa/oauth/accepted-scopes
+    client-id: test
+    client-secret: test
+    scopes: gateway
+  signature-verification:
+    public-key-endpoint-uri: http://uaa/oauth/token_key
+    #ttl for public keys to verify JWT tokens (in ms)
+    ttl: 86400000
+    #max. rate at which public keys will be fetched (in ms)
+    public-key-refresh-rate-limit: 10000
+  cors:
+    allowed-origins: '*'
+    allowed-methods: 'POST,PUT,GET,OPTIONS,DELETE'
+    allowed-headers: '*'
+    exposed-headers: 'Content-Type,Authorization,Content-Length,X-Requested-With,Link,X-Total-Count'
+    allow-credentials: false
+    max-age: 3600
+  cache:
+    hazelcast:
+      time-to-live-seconds: 3600
+      port: 5701
+      backup-count: 1
+      cp-count-member: 0
+      multicast: false
+      tcp-ip: true
+    role-cache:
+      enabled: true
+      time-to-live-seconds: 300
+      size: 1023
+  authorized-endpoints: /public-api/**,/public-files/**,/v3/api-docs/**
+
+springdoc:
+  swagger-ui:
+    configUrl: "/swagger-ui/swagger-config.json"
+    ssl: true
